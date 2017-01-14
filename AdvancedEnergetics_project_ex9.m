@@ -108,18 +108,19 @@ end
 dT_sort = T_sort(1:end-1) - T_sort(2:end);
 
 TempTable = table(coldCurve', hotCurve', 'VariableNames', ... 
-            {'coldCurve','hotCurve'})
+            {'coldCurve','hotCurve'});
 
-% Plot Data 
-% figure;
-% plot(hotCurve, T_sort, 'r'); hold on;
-% plot(coldCurve, T_sort, 'b'); hold on;
-% legend('Hot streams', 'Cold streams', 'Location', 'east');
-% xlabel('Heat load [kW]'); ylabel('Temeperature [C]');
-% xlim([0,hotCurve(1)]); ylim([0,1000]);
-% title('Composite Curve');
-% grid on; ylim([0,100])
-% print('fig_copositeCurve','-dpng')
+
+% % Plot Data 
+figure;
+plot(hotCurve, T_sort, 'r'); hold on;
+plot(coldCurve, T_sort, 'b'); hold on;
+legend('Hot streams', 'Cold streams', 'Location', 'east');
+xlabel('Heat load [kW]'); ylabel('Temeperature [C]');
+xlim([0,hotCurve(1)]); ylim([0,1000]);
+title('Composite Curve');
+grid on; ylim([0,100])
+print('fig_copositeCurve','-dpng')
 
 %% Task 2
 % Calulate 
@@ -163,8 +164,8 @@ for i = 1:N
     end
 end
 
-Hu2 = sum(Q_above(4:5))-sum(Q_above(1:3))
-Cu2 = sum(Q_below(1:3))- sum(Q_below(4:5))
+Hu2 = sum(Q_above(4:5))-sum(Q_above(1:3));
+Cu2 = sum(Q_below(1:3))- sum(Q_below(4:5));
 % Generate Table
 TemperatureTable = table(Tin_dt', Tout_dt', Q',Mcp', Q_above', Q_below', ...
                     'VariableNames', {'T_in_dt','T_out_dt', 'Q','M_cp','Q_above','Q_below'}, ...
@@ -173,22 +174,22 @@ TemperatureTable = table(Tin_dt', Tout_dt', Q',Mcp', Q_above', Q_below', ...
 NetWork_Table = table(T_sort', [0 dT_sort]', [0 M_cp]', [0 Q_r]', R_r0', R_r', ...
                 'VariableNames', {'TC','deltaT','M_cp','Q_r','R_r0','R_r'})
 
-% figure;
-% plot(R_r, T_sort,'r'); hold on;
-% plot([R_r(1) R_r(1)],[0,T_sort(1)],'--k'); hold on;
-% plot([R_r(end) R_r(end)],[0 T_sort(end)],'--k'); 
-% xlabel('Heat Load [kW]'); ylabel('Temperature [C]');
-% legend('All streams'); grid on;
-% title('Grand Composite Curve');
-% print('fig_grandCompositeCurve','-dpng')
+figure;
+plot(R_r, T_sort,'r'); hold on;
+plot([R_r(1) R_r(1)],[0,T_sort(1)],'--k'); hold on;
+plot([R_r(end) R_r(end)],[0 T_sort(end)],'--k'); 
+xlabel('Heat Load [kW]'); ylabel('Temperature [C]');
+legend('All streams'); grid on;
+title('Grand Composite Curve');
+print('fig_grandCompositeCurve','-dpng')
             
 
 %% Calculation Cost
-price_fuel = [0.50, 0.038];      % [EUR / kWh]   -> price Germany: 0.50  // price France: 0.038
+price_fuel = [0.050, 0.038];      % [EUR / kWh]   -> price Germany: 0.50  // price France: 0.038
 price_elec = [0.124, 0.081];      % [EUR / kWh]   -> price Germany: 0.124  // price France: 0.081
 
-price_fuel = price_fuel(1);
-price_elec = price_elec(1);
+i = 2; % 1-Germany / 2-France
+price = [price_fuel(i), price_elec(i)];
 
 
 price_wat = 0.01; % [0.01 CHF]
@@ -197,53 +198,92 @@ price_wat = 0.01; % [0.01 CHF]
 
 % Define System1
 hot = [1,2,2,1];
-cold = [4,5,5,5];
+cold = [1,2,2,2];
 abovePinch = [1,1,0,0];
 
-Q_R = [Q_above; Q_below]; 
-Mcp_R = Mcp;
+Q_R1 = [Q_above; Q_below]; 
+Mcp_R1 = Mcp;
 
 % Run calcluations
 for i = 1:length(cold)
-    disp(i)
-    [Q_tran(i), A(i), CostUnit(i),  investmentCost(i), Q_R, Mcp_R] = ...
-                        costCalcul(hot(i), cold(i), abovePinch(i), Q_R, ...
-                        T_pinch, Tin, Tout, deltaT, alpha, Mcp_R);
+    [Q_tran1(i), A1(i), CostUnit1(i),  investmentCost1(i), Q_R1, Mcp_R1, ~] = ...
+                        costCalcul(hot(i), cold(i), abovePinch(i), Q_R1, ...
+                        T_pinch, Tin_dt, deltaT, alpha, Mcp_R1);
 end
 
-Q_HU = sum(Q_R(1,4:5));
-Q_CU = sum(Q_R(2,1:3));
-if (round(Q_HU -Q(8)))
-    warning('Hot utility: Q_8=%d, Q_H=%d',Q(8),Q_HU)
-elseif(round(Q_CU - sum(Q(6:7))))
-    warning('Cold utility: Q_67=%d, Q_CU=%d',sum(Q(6:7)),Q_CU)
+Q_HU1 = sum(Q_R1(1,4:5));
+Q_CU1 = sum(Q_R1(2,1:3));
+if (round(Q_HU1 -Q(8)))
+    warning('Hot utility: Q_8=%d, Q_H=%d',Q(8),Q_HU1)
+elseif(round(Q_CU1 - sum(Q(6:7))))
+    warning('Cold utility: Q_67=%d, Q_CU=%d',sum(Q(6:7)),Q_CU1)
 else
-    fprintf('Cold utiility: CU & HU all good')
+    fprintf('Cold utiility: CU & HU all good \n')
 end
 
 %NetWork_Table 
-NetWork_Table = table(Q_tran', A', CostUnit', investmentCost', ...
-                'VariableNames', {'Q_i','A','CostUnit','InvestmentCost'})
+NetWork_Table = table(Q_tran1', A1', CostUnit1', investmentCost1', ...
+                'VariableNames', {'Q_i','A','CostUnit', 'InvestmentCost'})
+
+% Define System2
+hot2 = [2,1,1,2];
+cold2 = [1,2,2,2];
+abovePinch2 = [1,1,0,0];
+
+Q_R2 = [Q_above; Q_below]; 
+Mcp_R2 = Mcp;
+
+% Run calcluations
+for i = 1:length(cold)
+    [Q_tran2(i),A2(i), CostUnit2(i),  investmentCost2(i), Q_R2, Mcp_R2, ~] = ...
+                        costCalcul(hot2(i), cold2(i), abovePinch2(i), Q_R2, ...
+                        T_pinch, Tin_dt, deltaT, alpha, Mcp_R2);
+end
+
+Q_HU2 = sum(Q_R2(1,4:5));
+Q_CU2 = sum(Q_R2(2,1:3));
+if (round(Q_HU2 -Q(8)))
+    warning('Hot utility: Q_8=%d, Q_H=%d',Q(8),Q_HU2)
+elseif(round(Q_CU2 - sum(Q(6:7))))
+    warning('Cold utility: Q_67=%d, Q_CU=%d',sum(Q(6:7)),Q_CU1)
+else
+    fprintf('Cold utiility: CU & HU all good \n')
+end
+
+%NetWork_Table 
+NetWork_Table = table(A2', CostUnit2', investmentCost2', ...
+                'VariableNames', {'A','CostUnit','InvestmentCost'});
+            
 
 % Print to Latex
 fileID1 = fopen('HEN_opt1.tex','w');
 formatSpec = 'E%d & %3.0f & %3.0f & %6.0f & %6.0f \\\\ \n';
-fprintf(fileID1, formatSpec, [(1:length(Q_tran));round(Q_tran); round(A,0);...
-                round(CostUnit,-3); round(investmentCost, -3)] );
+fprintf(fileID1, formatSpec, [(1:length(Q_tran1));round(Q_tran1); round(A1);...
+                round(CostUnit1); round(investmentCost1)] );
 fclose(fileID1);            
-            
-% Define System2
-hot = [2,1,1,2];
-cold = [4,5,5,5];
+
+% Print to Latex
+fileID2 = fopen('HEN_opt2.tex','w');
+formatSpec = 'E%d & %3.0f & %3.0f & %6.0f & %6.0f \\\\ \n';
+fprintf(fileID2, formatSpec, [(1:length(Q_tran2));round(Q_tran2); round(A2);...
+                round(CostUnit2); round(investmentCost2)] );
+fclose(fileID2);    
+
+
+% Final Option
+% Define System1
+hot = [1,2,1,2];
+cold = [1,2,2,2];
 abovePinch = [1,1,0,0];
 
 Q_R = [Q_above; Q_below]; 
 Mcp_R = Mcp;
+
 % Run calcluations
 for i = 1:length(cold)
-    [Q_tran(i),A(i), CostUnit(i),  investmentCost(i), Q_R, Mcp_R] = ...
+    [Q_tran(i), A(i), CostUnit(i),  investmentCost(i), Q_R, Mcp_R, ~] = ...
                         costCalcul(hot(i), cold(i), abovePinch(i), Q_R, ...
-                        T_pinch, Tin, Tout, deltaT, alpha, Mcp_R);
+                        T_pinch, Tin_dt, deltaT, alpha, Mcp_R);
 end
 
 Q_HU = sum(Q_R(1,4:5));
@@ -253,54 +293,52 @@ if (round(Q_HU -Q(8)))
 elseif(round(Q_CU - sum(Q(6:7))))
     warning('Cold utility: Q_67=%d, Q_CU=%d',sum(Q(6:7)),Q_CU)
 else
-    fprintf('Cold utiility: CU & HU all good')
+    fprintf('Cold utiility: CU & HU all good \n')
 end
 
-% Print to Latex
-fileID2 = fopen('HEN_opt2.tex','w');
-formatSpec = 'E%d & %3.0f & %3.0f & %6.0f & %6.0f \\\\ \n';
-fprintf(fileID2, formatSpec, [(1:length(Q_tran));round(Q_tran); round(A,0);...
-                round(CostUnit,-3); round(investmentCost, -3)] );
-fclose(fileID2);            
+fileID = fopen(['costAnnual.tex'],'w');
+fprintf(fileID,'\\begin{tabular}{l r r r r} \n \\hline \n');
+fprintf(fileID, ' & Investment & CAPEX & OPEX & Total \\\\ \n');
+fprintf(fileID, ' & [CHF] & [CHF/year] & [CHF/year] & [CHF/year] \\\\  \\hline \n'); 
 
-%NetWork_Table 
-NetWork_Table = table(A', CostUnit', investmentCost', ...
-                'VariableNames', {'A','CostUnit','InvestmentCost'})
-            
+Q_ref = Q(3); % Heat refigiration cycle
+annualCost(0, sum(Q(4:5)),sum(Q(1:2)),Q_ref, fileID,'No Exchanger', price);
+annualCost(investmentCost, sum(Q_HU),sum(Q_CU),Q_ref, fileID,'Option A-B', price);
 
-%Operating time per year
-opTime = 8000; % h/year 
+hot = 1; cold = 2; abovePinch = true; Q_max = Q_tran(3);
+[Q_transf1,A_2,~,invCost1,~,~,T_out2] = costCalcul(hot, cold, abovePinch, Q, T_pinch, ...
+                                Tin_dt, deltaT, alpha, Mcp, Q_max)
+                            
+hot = 2; cold = 2; abovePinch = true; Q_max = Q_tran(2);
+[Q_transf2,~,~,invCost2,~,~,~] = costCalcul(hot, cold, abovePinch, Q, T_out2(2), ...
+                                Tin_dt, deltaT, alpha, Mcp, Q_max)
 
-%Hot Utility
-eff_heat = 0.85;
+investmentCost_new = investmentCost(1) +invCost1 +invCost2;                            
+Q_HU_new = sum(Q(4:5))- Q_tran(1)-Q_transf1-Q_transf2;
+Q_CU_new = sum(Q(1:2))- Q_tran(1)-Q_transf1-Q_transf2;
+annualCost(investmentCost_new, Q_HU_new, Q_CU_new, Q_ref, fileID,'3 Exchanger', price);
 
-Q_HU = Q(8); %245+145;
-Q_gas = Q_HU*eff_heat./price_fuel;
+hot = 2; cold = 2; abovePinch = true; Q_max = Q(2)*(Tin_dt(2)-Tin_dt(2+3))/(Tin_dt(2)-Tout_dt(2))
+[Q_transf1,~,~,invCost1,~,~,T_out2] = costCalcul(hot, cold, abovePinch, Q, Tin(2+3), ...
+                                Tin_dt, deltaT, alpha, Mcp, Q_max)
+                            
+investmentCost_new = investmentCost(1) +invCost1;
+Q_HU_new = sum(Q(4:5))- Q_tran(1)-Q_transf1;
+Q_CU_new = sum(Q(1:2))- Q_tran(1)-Q_transf1;
+annualCost(investmentCost_new, Q_HU_new, Q_CU_new, Q_ref, fileID,'2 Exchanger', price);
 
-opCost_HU = Q_gas*price_fuel*opTime;
-
-% Cold Utility
-Q_CU = Q(7);
-cp_wat =4.178;  
-rho_wat = 996;              %[kg/m^3]
-M_CU = Q_CU/(cp_wat*(Tout(7)-Tin(7)));
-opCost_CU = M_CU*3600/rho_wat*price_wat*opTime; % 3600s/h
-
-Q_ref = Q(6);
-
-W_ref = Q_ref/4;
+fprintf(fileID, '\\hline \n \\end{tabular} \n');
+fclose(fileID);
 
 % opCost_ref = W_ref*price_elec*opTime
-
-
 
 %% Task 3
 % Pressure Ratio Evaporator
 r = 4;                          % p_cond/p_eva
 eff_compr = 0.82;                % h2 = (h2s-1)*eff +h1
-T_evap = Tin(5);
+T_evap = Tin(5)
 p_evap0_R134A = 298200;          % [Pa] 
-p_cond_R134A = r*p_evap0_R134A; % [Pa]
+p_cond_R134A = r*p_evap0_R134A % [Pa]
 
 T_cond = 46.04 % C -> calculated with pressure
 
@@ -318,88 +356,24 @@ s_evap1 = 0.4269; % [kJ/kg]
 
 % Exergy - Balance
 Q_evap = Q(5)
+
 % Crossflow
 dt_Out = Tin(3)-Tout(6); % cold
 dt_In = Tout(3) - Tin(6); % hot
-lmdt_evap = (dt_Out-dt_In)/log(dt_Out/dt_In)
+lmdt_evap = (dt_Out-dt_In)/log(dt_Out/dt_In);
 m_ref = Q_evap/(h_evap2-h_evap1);
-A_evap = Q_evap/(alpha(5)*lmdt_evap)
+A_evap = Q_evap/(alpha(5)*lmdt_evap);
 
 % cross flow
 dt_Out = T_cond - T_amb; %
 dt_In = T_cond - (T_amb + 5); % Air is heated by 5 degrees
-lmdt_cond = (dt_Out-dt_In)/log(dt_Out/dt_In)
+lmdt_cond = (dt_Out-dt_In)/log(dt_Out/dt_In);
 
 Q_cond = m_ref*(h_cond1-h_cond2)
-A_cond = Q_cond/(alpha(5)*lmdt_cond)
+A_cond = Q_cond/(alpha(5)*lmdt_cond);
 
-W_ref = Q_cond - Q_evap;
+W_ref = Q_cond - Q_evap
 
 % Exergy analysis
-X_ref = Q_evap*T_amb/T_evap-Q_cond*T_amb/T_cond + W_ref
+X_ref = Q_evap*T_amb/T_evap-Q_cond*T_amb/T_cond + W_ref;
 
-
-%% Functions
-function [Q_ex, A, CostUnit,  investmentCost, Q_R, Mcp] ... 
-    = costCalcul(hot, cold, abovePinch, Q_R, T_pinch, Tin, Tout, deltaT, alpha, Mcp)
-Q_aboveR = Q_R(1,:);
-    Q_belowR = Q_R(2,:);
-
-    if(abovePinch) 
-        Q_ex = min(Q_aboveR(hot), Q_aboveR(cold));
-
-        Q_aboveR(hot) = Q_aboveR(hot)-Q_ex;
-        Q_aboveR(cold) = Q_aboveR(cold)-Q_ex;
-
-        dt1 = Tin(hot)-(Q_ex/Mcp(cold)+T_pinch); % For this example we start at pinch
-        dt2 = max(Tin(hot)- Q_ex/Mcp(hot), T_pinch) - (T_pinch);
-    else
-        Mcp_temp = 0;
-        Q_ex = min(Q_belowR(hot), Q_belowR(cold));
-        if(Mcp(hot) < Mcp(cold)) % Split stream
-            Q_ex = Q_ex*Mcp(hot)/Mcp(cold);
-            Mcp_temp = Mcp(cold);
-            Mcp(cold) = Mcp(hot);
-            
-        end
-        Q_belowR(hot) = Q_belowR(hot)-Q_ex; % For this example we start at pinch
-        Q_belowR(cold) = Q_belowR(cold)-Q_ex;
-
-        dt1 = (T_pinch-(Q_ex/Mcp(cold)+Tin(cold)));
-        dt2 = (T_pinch -Q_ex/Mcp(hot)) - Tin(cold);
-        if(Mcp_temp) % Assign resting Mcp
-            Mcp(cold) = Mcp_temp -Mcp(hot);
-        end
-    end
-    Q_R = [Q_aboveR; Q_belowR]; 
-    
-    dtMin = deltaT(hot)+deltaT(cold);
-    if(or(dt2< dtMin, dt1<dtMin))
-       warning('Exchange hardly possible. dt2 too small.')
-       fprintf('dt1=%d, dt2=%d ;; dtMin=%d\n',dt1,dt2,dtMin)
-    end;
-    
-    % Logarithmic mean temperature difference (LMTD) in correcteddomain
-    if dt1 == dt2
-        lmtd = dt1;
-    else
-        lmtd = (dt1-dt2)/log(dt1/dt2);
-    end
-    
-    U = 1/(1/alpha(hot)+1/alpha(cold)); % Global heat transfer coefficient
-    A = Q_ex/(lmtd*U); % Heat exchanger area
-
-    k1 = 3.8528; k2 = 0.4242; % Reference year 1998
-    I_t = 585.7; % most recent available 2011
-    I_ref = 389.5; % 1998
-    CostUnit = I_t/I_ref*10^(k1+k2*log(A));% Investment cost
-    
-    nYears = 20; % Lifetime of the installation
-    intRate = 0.08; % Interest                                                                                                                                                                                                                                                                                                                      
-    exch_chfUSD = 0.99; % @ 13th Dec 2016
-    F_BM = 4.74;% Bare module factor
-
-    purchaseCost = F_BM*sum(CostUnit)*exch_chfUSD;
-
-    investmentCost = purchaseCost * intRate*(1+intRate)^nYears/((1+intRate)^nYears -1);
-end
